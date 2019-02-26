@@ -53,8 +53,10 @@ defmodule OMG.Watcher.Challenger.Core do
   def ensure_challengeable({:ok, :not_found}, _), do: {:error, :utxo_not_spent}
   def ensure_challengeable(_, {:ok, :not_found}), do: {:error, :exit_not_found}
 
-  def ensure_challengeable({:ok, blknum}, {:ok, {_, exit_info}}) when is_integer(blknum),
-    do: {:ok, blknum, ExitInfo.from_db_value(exit_info)}
+  def ensure_challengeable({:ok, blknum}, {:ok, exit_info_kv}) when is_integer(blknum) do
+    {_, exit_info} = ExitInfo.from_db_kv(exit_info_kv)
+    {:ok, blknum, exit_info}
+  end
 
   def ensure_challengeable({:error, error}, _), do: {:error, error}
   def ensure_challengeable(_, {:error, error}), do: {:error, error}
