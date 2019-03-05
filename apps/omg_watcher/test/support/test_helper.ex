@@ -73,15 +73,6 @@ defmodule OMG.Watcher.TestHelper do
 
   def create_topic(main_topic, subtopic), do: main_topic <> ":" <> subtopic
 
-  def to_response_address(address) do
-    "0X" <> encoded =
-      address
-      |> OMG.API.Crypto.encode_address!()
-      |> String.upcase()
-
-    encoded
-  end
-
   @doc """
   Decodes specified keys in map from hex to binary
   """

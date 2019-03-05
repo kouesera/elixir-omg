@@ -130,11 +130,6 @@ defmodule OMG.API.BlockQueue.Core do
     end
   end
 
-  @spec enqueue_block(Core.t()) :: Core.t()
-  def enqueue_block(state) do
-    %{state | wait_for_enqueue: false}
-  end
-
   defp validate_block_number(block_number, own_height) when block_number == own_height, do: :ok
   defp validate_block_number(_, _), do: {:error, :unexpected_block_number}
 
