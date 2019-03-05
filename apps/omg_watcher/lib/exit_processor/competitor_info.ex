@@ -41,7 +41,10 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
 
   # NOTE: we have no migrations, so we handle data compatibility here (make_db_update/1 and from_db_kv/1), OMG-421
   def make_db_update({tx_hash, %__MODULE__{} = competitor}) do
-    value = Map.take(competitor, [:tx, :competing_input_index, :competing_input_signature])
+    expected_fields = [:tx, :competing_input_index, :competing_input_signature]
+
+    value = expected_fields |> Enum.reduce(%{}, fn key, acc -> Map.put_new(acc, key, Map.fetch!(competitor, key)) end)
+
     {:put, :competitor_info, {tx_hash, value}}
   end
 
@@ -50,6 +53,9 @@ defmodule OMG.Watcher.ExitProcessor.CompetitorInfo do
   end
 
   def from_db_kv({tx_hash, competitor_map}) do
+    expected_fields = %__MODULE__{} |> Map.from_struct() |> Map.keys()
+    ^expected_fields = competitor_map |> Map.keys()
+
     {tx_hash, struct!(__MODULE__, competitor_map)}
   end
 
