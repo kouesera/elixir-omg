@@ -62,7 +62,7 @@ defmodule OMG.API.BlockQueue do
     end
 
     def init(:ok) do
-      :ok = Eth.Geth.node_ready()
+      :ok = Eth.Node.node_ready()
       :ok = Eth.RootChain.contract_ready()
       {:ok, parent_height} = Eth.get_ethereum_height()
       {:ok, mined_num} = Eth.RootChain.get_mined_child_block()
