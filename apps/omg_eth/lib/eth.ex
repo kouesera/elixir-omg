@@ -33,6 +33,26 @@ defmodule OMG.Eth do
   @type address :: <<_::160>>
   @type hash :: <<_::256>>
 
+  @doc """
+  Send transaction to be singed by a key managed by Ethereum node, geth or parity
+  """
+  @spec send_transaction(map()) :: {:ok, binary()} | {:error, any()}
+  def send_transaction(txmap) do
+    case backend() do
+      :geth ->
+        Ethereumex.HttpClient.eth_send_transaction(txmap)
+
+      :parity ->
+        with {:ok, passphrase} <- get_signer_passphrase(txmap.from),
+             do: Ethereumex.HttpClient.request("personal_sendTransaction", [txmap, passphrase], [])
+    end
+  end
+
+  def backend do
+    Application.get_env(:omg_eth, :eth_node, "geth")
+    |> String.to_existing_atom()
+  end
+
   def get_ethereum_height do
     case Ethereumex.HttpClient.eth_block_number() do
       {:ok, height_hex} ->
@@ -75,7 +95,7 @@ defmodule OMG.Eth do
       |> Map.merge(Map.new(opts))
       |> encode_all_integer_opts()
 
-    with {:ok, txhash} <- Ethereumex.HttpClient.eth_send_transaction(txmap),
+    with {:ok, txhash} <- send_transaction(txmap),
          do: {:ok, from_hex(txhash)}
   end
 
@@ -110,7 +130,7 @@ defmodule OMG.Eth do
       |> Map.merge(Map.new(opts))
       |> encode_all_integer_opts()
 
-    with {:ok, txhash} <- Ethereumex.HttpClient.eth_send_transaction(txmap),
+    with {:ok, txhash} <- send_transaction(txmap),
          do: {:ok, from_hex(txhash)}
   end
 
@@ -230,5 +250,17 @@ defmodule OMG.Eth do
   defp common_parse_event(result, %{"blockNumber" => eth_height}) do
     result
     |> Map.put(:eth_height, int_from_hex(eth_height))
+  end
+
+  defp get_signer_passphrase("0x00a329c0648769a73afac7f9381e08fb43dbea72") do
+    # Parity coinbase address in dev mode, passphrase is empty
+    {:ok, ""}
+  end
+
+  defp get_signer_passphrase(_) do
+    case System.get_env("SIGNER_PASSPHRASE") do
+      nil -> {:error, :please_provide_passphrase_unlocking_ethereum_account_managed_by_parity}
+      value -> {:ok, value}
+    end
   end
 end
