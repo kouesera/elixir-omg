@@ -101,7 +101,13 @@ defmodule OMG.Watcher.API.Transaction do
     token_utxo_selection = select_utxo(DB.TxOutput.get_utxos(owner), needed_funds)
 
     with {:ok, funds} <- funds_sufficient?(token_utxo_selection) do
+      alias OMG.API.State.Transaction
+      require Transaction
 
+      utxo_count = funds |> Enum.map(&length/1) |> Enum.sum()
+      if utxo_count <= Transaction.max_inputs(),
+      do: create_transaction(funds |> List.flatten(), payments), # FIXME: final outputs have to contain token's rests, so Tx could not be possible
+    else: create_merge(funds)
     end
   end
 
@@ -148,7 +154,10 @@ defmodule OMG.Watcher.API.Transaction do
       |> Enum.map(fn {token, {short, _}} -> %{token: OMG.RPC.Web.Encoding.to_hex(token), missing: short} end)
 
     if Enum.empty?(missing_funds),
-      do: {:ok, utxo_selection},
+      do: {:ok, utxo_selection |> Enum.map(fn {_,{_, utxos}} -> utxos end)},
     else: {:error, :insufficient_funds, missing_funds}
   end
+
+  defp create_transaction(utxos, payments), do: {:ok, :yes}
+  defp create_merge(utxos), do: {:ok, :no}
 end
